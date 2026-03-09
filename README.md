@@ -143,3 +143,55 @@ You should see:
 created 1to2 bridge for topic '/bridge_test'
 ```
 Leave this running.
+## Test ROS1 → ROS2
+Open a new host terminal:
+```
+source /opt/ros/humble/setup.bash
+
+export ROS_DOMAIN_ID=0
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+unset ROS_LOCALHOST_ONLY
+```
+Stop the ROS2 CLI daemon:
+```
+ros2 daemon stop || true
+pkill -f _ros2_daemon || true
+```
+Check topics:
+```
+ros2 topic list
+```
+You should see:
+```
+/bridge_test
+```
+Read the message:
+```
+ros2 topic echo /bridge_test std_msgs/msg/String --once
+```
+Expected output:
+```
+data: hello_from_duckiebot
+```
+## Test ROS2 → ROS1
+Start a ROS1 listener (inside GUI tools container):
+```
+source /opt/ros/noetic/setup.bash
+rostopic echo /bridge_back_test
+```
+On the host (ROS2):
+```
+source /opt/ros/humble/setup.bash
+
+export ROS_DOMAIN_ID=0
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+unset ROS_LOCALHOST_ONLY
+
+ros2 topic pub /bridge_back_test std_msgs/msg/String "{data: hello_from_ros2}"
+```
+Expected output in ROS1:
+```
+data: hello_from_ros2
+```
+#
+After testing this successfully you can use this with real Duckeibot topics.
