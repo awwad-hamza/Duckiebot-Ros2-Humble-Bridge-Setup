@@ -7,24 +7,17 @@ At the end you will be able to:
 - Send ROS2 messages to ROS1 nodes
 
 Architecture:
+```
 Duckiebot (ROS1 master)
-
 │
-
-│ 
-ROS1
-
+│ ROS1
 ▼
-
-ros1_bridge container 
-
+ros1_bridge container (host)
 │
-
 │ ROS2
-
 ▼
-
-Laptop ROS2 
+ROS2 tools
+```
 
 >Important:  
 **Do NOT run `roscore` manually for this setup.**  
