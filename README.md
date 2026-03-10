@@ -47,7 +47,7 @@ rostopic pub -r 2 /bridge_test std_msgs/String "data: hello_from_duckiebot"
 ```
 
 ## Download the ROS1 Bridge Image
-Pull the official ROS bridge container:
+Start a new terminal, then pull the official ROS bridge container:
 ```
 docker pull ros:foxy-ros1-bridge
 ```
