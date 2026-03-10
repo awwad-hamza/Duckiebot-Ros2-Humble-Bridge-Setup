@@ -23,6 +23,29 @@ ROS2 tools
 **Do NOT run `roscore` manually for this setup.**  
 If you run the container from within the Duckiebot the ROS1 master will remain on automatically.
 
+## Start Duckietown GUI Tools 
+> Note: the `dts start_gui_tools` command starts a terminal (container) that is connected to the Duckiebot ROS network. In this terminal you can perform all ROS commands and have access to all ROS messages streaming on your Duckiebot. But if you are using a simulation run the relevant commands to start the process. Whether you use the physical Duckiebot or a simulation, you should end up with a container that we can communicate with. This guide here is specific for physical Duckeibots since it's the standard.
+
+On the laptop:
+```
+dts start_gui_tools $HOSTNAME
+```
+
+Inside the container:
+```
+source /opt/ros/noetic/setup.bash
+rostopic list | head
+```
+You should see Duckiebot topics.
+
+## Create a ROS1 Test Publisher
+Inside the GUI tools container:
+```
+source /opt/ros/noetic/setup.bash
+
+rostopic pub -r 2 /bridge_test std_msgs/String "data: hello_from_duckiebot"
+```
+
 ## Download the ROS1 Bridge Image
 Pull the official ROS bridge container:
 ```
@@ -39,7 +62,7 @@ export HOSTNAME=<your_duckiebot_hostname>
 export ROBOT_FQDN="${HOSTNAME}.local"
 
 export ROBOT_IP=$(getent ahostsv4 ${ROBOT_FQDN} | awk 'NR==1{print $1}')
-export LAPTOP_IP=$(ip route get ${ROBOT_IP} | awk '/src/ {print $7; exit}')
+export LAPTOP_IP="$(ip route get "${ROBOT_IP}" | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}')"
 
 echo "Robot hostname: $ROBOT_FQDN"
 echo "Robot IP: $ROBOT_IP"
@@ -49,37 +72,8 @@ Test connectivity:
 ```
 ping -c 1 $ROBOT_FQDN
 ```
-## Start Duckietown GUI Tools 
-> Note: the `dts start_gui_tools` command starts a terminal (container) that is connected to the Duckiebot ROS network. In this terminal you can perform all ROS commands and have access to all ROS messages streaming on your Duckiebot. But if you are using a simulation run the relevant commands to start the process. Whether you use the physical Duckiebot or a simulation, you should end up with a container that we can communicate with. This guide here is specific for physical Duckeibots since it's the standard.
-
-On the laptop:
-```
-dts start_gui_tools $HOSTNAME
-```
-Find the container:
-```
-docker ps
-```
-Enter it:
-```
-docker exec -it <gui_tools_container> bash
-```
-Inside the container:
-```
-source /opt/ros/noetic/setup.bash
-rostopic list | head
-```
-You should see Duckiebot topics.
-
-## Create a ROS1 Test Publisher
-Inside the GUI tools container:
-```
-source /opt/ros/noetic/setup.bash
-
-rostopic pub -r 2 /bridge_test std_msgs/String "data: hello_from_duckiebot"
-```
 ## Start the ROS1 Bridge Container
-On the host:
+Open a new terminal and run:
 ```
 docker rm -f ros1_bridge 2>/dev/null || true
 
@@ -91,9 +85,11 @@ Start the bridge:
 docker run --rm -it \
   --network host \
   --ipc host \
-  --user $(id -u):$(id -g) \
-  --add-host ${ROBOT_FQDN}:${ROBOT_IP} \
+  --user "$(id -u):$(id -g)" \
+  --add-host "${ROBOT_FQDN}:${ROBOT_IP}" \
   --name ros1_bridge \
+  -e ROBOT_IP="${ROBOT_IP}" \
+  -e LAPTOP_IP="${LAPTOP_IP}" \
   -e HOME=/tmp/ros1_bridge_home \
   -e ROS_HOME=/tmp/ros1_bridge_home/.ros \
   -e ROS_LOG_DIR=/tmp/ros1_bridge_logs \
@@ -131,13 +127,13 @@ Still in the bridge container:
 ```
 ros2 run ros1_bridge dynamic_bridge --bridge-all-topics
 ```
-You should see:
+You should see (among other things):
 ```
 created 1to2 bridge for topic '/bridge_test'
 ```
 Leave this running.
 ## Test ROS1 → ROS2
-Open a new host terminal:
+Open a new host terminal (for ROS2):
 ```
 source /opt/ros/humble/setup.bash
 
@@ -154,7 +150,7 @@ Check topics:
 ```
 ros2 topic list
 ```
-You should see:
+You should see (among other things):
 ```
 /bridge_test
 ```
